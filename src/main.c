@@ -1,8 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <chlisp/string_utils.h>
+#include <chlisp/defines.h>
 
 int is_balanced(const char* sexp)
 {
@@ -24,44 +24,19 @@ int is_balanced(const char* sexp)
     return current_depth == 0;
 }
 
-char* read_sexp()
-{
-    uint8_t sexp_size = 0;
-    char c;
-    uint8_t buf_size = 8;
-    char* buf = malloc(buf_size);
-
-    while(read(0, &c, 1) > 0)
-    {
-        if (c == '\n')
-            break;
-
-        if (buf_size < sexp_size)
-        {
-            buf_size *= 2;
-            char* new_buf = malloc(buf_size);
-            char* tmp = buf;
-            buf = new_buf;
-            free(tmp);
-        }
-
-        buf[sexp_size++] = c;
-    }
-    buf[sexp_size] = '\0';
-
-    char* res = malloc(sexp_size);
-    strcpy(res, buf);
-    free(buf);
-
-    return res;
-}
 
 int main(int argc, char** argv)
 {
     printf("> ");
     fflush(stdout);
 
-    char* sexp = read_sexp();
+    char* sexp = NULL;
+    int char_count;
+    int ret = read_string(0, &sexp, &char_count);
+
+    if (ret != CHLISP_SUCCESS)
+        exit(1);
+
     printf("The sexp is %s\n", sexp);
     if (is_balanced(sexp))
     {
