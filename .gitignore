@@ -1,3 +1,5 @@
 chlisp
 *.o
 *.so
+zig-out
+.zig-cache
