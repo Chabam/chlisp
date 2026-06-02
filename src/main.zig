@@ -1,5 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
+const lexer = @import("lexer.zig");
 
 const chlisp = @import("chlisp");
 
@@ -33,5 +34,26 @@ pub fn main(init: std.process.Init) !void {
 
     _ = try file.readPositionalAll(io, file_content, 0);
     try stdout_writer.print("File content:\n----\n{s}\n----\n", .{file_content});
+    try stdout_writer.flush();
+
+    var cursor: usize = 0;
+    var begin: usize = undefined;
+    var end: usize = undefined;
+    while (cursor <= file_stat.size) {
+        const atom: ?lexer.Atoms = lexer.read_token(file_content, cursor, &begin, &end);
+
+        if (atom == null)
+            break;
+
+        const token_size: usize = end - begin;
+        const token: []u8 = try arena.alloc(u8, token_size);
+        defer arena.free(token);
+
+        @memset(token, 0);
+        @memcpy(token, file_content[begin..end]);
+
+        try stdout_writer.print("{d},{d},'{s}': {s}\n", .{ cursor, token_size, token, @tagName(atom.?) });
+        cursor = end;
+    }
     try stdout_writer.flush();
 }
