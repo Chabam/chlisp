@@ -1,55 +1,64 @@
 const std = @import("std");
 
-pub const Atoms = enum {
+pub const TokenType = enum {
     open_sexpr,
     close_sexpr,
     symbol,
 };
 
-pub fn read_token(text: []u8, input_cursor: usize, begin: *usize, end: *usize) ?Atoms {
-    var is_symbol: bool = false;
-    var cursor = input_cursor;
+pub const Token = struct { type: TokenType, begin: usize, text: [] const u8 };
 
-    begin.* = cursor;
-    end.* = cursor;
-
-    while (cursor < text.len) : ({
-        cursor = cursor + 1;
-        end.* = end.* + 1;
-    }) {
-        if (text[cursor] == ' ' or
-            text[cursor] == '\t' or
-            text[cursor] == '\n')
-        {
-            if (is_symbol) {
-                return Atoms.symbol;
-            }
-
-            begin.* = begin.* + 1;
-            continue;
-        }
-
-        if (text[cursor] == '(') {
-            if (!is_symbol) {
-                end.* = end.* + 1;
-                return Atoms.open_sexpr;
-            }
-
-            return Atoms.symbol;
-        } else if (text[cursor] == ')') {
-            if (!is_symbol) {
-                end.* = end.* + 1;
-                return Atoms.close_sexpr;
-            }
-
-            return Atoms.symbol;
-        }
-
-        is_symbol = true;
+pub const Tokenizer = struct {
+    cursor: usize,
+    text: []const u8,
+    pub fn init(text: []u8) Tokenizer {
+        return Tokenizer{ .cursor = 0, .text = text };
     }
+    pub fn next(self: *Tokenizer) ?Token {
+        var is_symbol: bool = false;
 
-    if (!is_symbol)
-        return null;
+        var begin = self.cursor;
+        var end = self.cursor;
+        defer self.cursor = end;
 
-    return Atoms.symbol;
-}
+        while (self.cursor < self.text.len) : ({
+            self.cursor = self.cursor + 1;
+            end = end + 1;
+        }) {
+            if (self.text[self.cursor] == ' ' or
+                self.text[self.cursor] == '\t' or
+                self.text[self.cursor] == '\n')
+            {
+                if (is_symbol) {
+                    return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+                }
+
+                begin = begin + 1;
+                continue;
+            }
+
+            if (self.text[self.cursor] == '(') {
+                if (!is_symbol) {
+                    end = end + 1;
+                    return Token{ .type = TokenType.open_sexpr, .begin = begin, .text = self.text[begin..end] };
+                }
+
+                return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+            } else if (self.text[self.cursor] == ')') {
+                if (!is_symbol) {
+                    end = end + 1;
+                    return Token{ .type = TokenType.close_sexpr, .begin = begin, .text = self.text[begin..end] };
+                }
+
+                return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+            }
+
+            is_symbol = true;
+        }
+
+        if (!is_symbol)
+            return null;
+
+        return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+    }
+};
