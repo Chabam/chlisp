@@ -6,7 +6,7 @@ pub const TokenType = enum {
     symbol,
 };
 
-pub const Token = struct { type: TokenType, begin: usize, text: [] const u8 };
+pub const Token = struct { type: TokenType, begin: usize, text: []const u8 };
 
 pub const Tokenizer = struct {
     cursor: usize,
@@ -15,50 +15,53 @@ pub const Tokenizer = struct {
         return Tokenizer{ .cursor = 0, .text = text };
     }
     pub fn next(self: *Tokenizer) ?Token {
-        var is_symbol: bool = false;
-
         var begin = self.cursor;
         var end = self.cursor;
         defer self.cursor = end;
 
+        var tt: ?TokenType = null;
+        const open_sexpr_chars = [_]u8{'('};
+        const close_sexpr_chars = [_]u8{')'};
+        const whitespace_chars = [_]u8{ ' ', '\t', '\n' };
         while (self.cursor < self.text.len) : ({
             self.cursor = self.cursor + 1;
             end = end + 1;
         }) {
-            if (self.text[self.cursor] == ' ' or
-                self.text[self.cursor] == '\t' or
-                self.text[self.cursor] == '\n')
-            {
-                if (is_symbol) {
-                    return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
-                }
+            if (std.mem.indexOfScalar(u8, &whitespace_chars, self.text[self.cursor])) |_| {
+                if (tt != null)
+                    break;
 
                 begin = begin + 1;
                 continue;
             }
 
-            if (self.text[self.cursor] == '(') {
-                if (!is_symbol) {
+            // TODO: check if I really want to support multiple open/close chars
+            if (std.mem.indexOfScalar(u8, &open_sexpr_chars, self.text[self.cursor])) |_| {
+                if (tt == null) {
                     end = end + 1;
-                    return Token{ .type = TokenType.open_sexpr, .begin = begin, .text = self.text[begin..end] };
+                    tt = TokenType.open_sexpr;
+                    break;
                 }
 
-                return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
-            } else if (self.text[self.cursor] == ')') {
-                if (!is_symbol) {
-                    end = end + 1;
-                    return Token{ .type = TokenType.close_sexpr, .begin = begin, .text = self.text[begin..end] };
-                }
-
-                return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+                break;
             }
 
-            is_symbol = true;
+            if (std.mem.indexOfScalar(u8, &close_sexpr_chars, self.text[self.cursor])) |_| {
+                if (tt == null) {
+                    end = end + 1;
+                    tt = TokenType.close_sexpr;
+                    break;
+                }
+
+                break;
+            }
+
+            tt = TokenType.symbol;
         }
 
-        if (!is_symbol)
+        if (tt == null)
             return null;
 
-        return Token{ .type = TokenType.symbol, .begin = begin, .text = self.text[begin..end] };
+        return Token{ .type = tt.?, .begin = begin, .text = self.text[begin..end] };
     }
 };
