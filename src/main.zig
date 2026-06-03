@@ -1,6 +1,5 @@
 const std = @import("std");
 const Io = std.Io;
-const lexer = @import("lexer.zig");
 
 const chlisp = @import("chlisp");
 
@@ -36,9 +35,19 @@ pub fn main(init: std.process.Init) !void {
     try stdout_writer.print("File content:\n----\n{s}\n----\n", .{file_content});
     try stdout_writer.flush();
 
-    var tokenizer = lexer.Tokenizer.init(file_content);
+    var tokenizer = chlisp.lexer.Tokenizer.init(file_content);
     while (tokenizer.next()) |token| {
         try stdout_writer.print("{d},{d},'{s}': {s}\n", .{ token.begin, token.text.len, token.text, @tagName(token.type) });
     }
+    try stdout_writer.flush();
+    const val1 = try arena.create(chlisp.value.Value);
+    val1.* = chlisp.value.Value{ .int = 1 };
+
+    const val2 = try arena.create(chlisp.value.Value);
+    val2.* = chlisp.value.Value{ .float = 2.0 };
+
+    const tst = chlisp.pair.Pair.init(val1, val2);
+
+    try stdout_writer.print("Pair value: {} {}\n", .{ tst.head, tst.tail.* });
     try stdout_writer.flush();
 }
