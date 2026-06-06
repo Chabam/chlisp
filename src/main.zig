@@ -6,7 +6,7 @@ const chlisp = @import("chlisp");
 const CLIError = error{MissingFileName};
 
 pub fn main(init: std.process.Init) !void {
-    const arena: std.mem.Allocator = init.arena.allocator();
+    var arena: std.mem.Allocator = init.arena.allocator();
     const io = init.io;
 
     var stderr_buffer: [1024]u8 = undefined;
@@ -40,14 +40,18 @@ pub fn main(init: std.process.Init) !void {
         try stdout_writer.print("{d},{d},'{s}': {s}\n", .{ token.begin, token.text.len, token.text, @tagName(token.type) });
     }
     try stdout_writer.flush();
-    const val1 = try arena.create(chlisp.value.Value);
-    val1.* = chlisp.value.Value{ .int = 1 };
 
-    const val2 = try arena.create(chlisp.value.Value);
-    val2.* = chlisp.value.Value{ .float = 2.0 };
+    const val1 = chlisp.value.Value{ .number = 1 };
+    const val2 = chlisp.value.Value{ .symbol = @constCast("Allo") };
 
     const tst = chlisp.pair.Pair.init(val1, val2);
+    var env = chlisp.environment.Environment.init(arena);
 
-    try stdout_writer.print("Pair value: {} {}\n", .{ tst.head, tst.tail.* });
+    try env.addValue(@constCast("val1"), val1);
+    try env.addValue(@constCast("val2"), val2);
+    try env.addValue(@constCast("pair"), chlisp.value.Value{ .pair = @constCast(&tst) });
+
+    try env.print(stdout_writer);
+
     try stdout_writer.flush();
 }

@@ -65,3 +65,25 @@ pub const Tokenizer = struct {
         return Token{ .type = tt.?, .begin = begin, .text = self.text[begin..end] };
     }
 };
+
+const expect = std.testing.expect;
+
+test "basic_tokenizing" {
+    var gpa: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = gpa.allocator();
+
+    const basic_txt = "(+ 1 2)";
+    var tokens = try std.ArrayList(Token).initCapacity(allocator, 5);
+
+    var tokenizer = Tokenizer.init(@constCast(basic_txt));
+    while (tokenizer.next()) |token| {
+        try tokens.append(allocator, token);
+    }
+
+    try expect(tokens.items.len == 5);
+    try expect(tokens.items[0].type == TokenType.open_sexpr);
+    try expect(tokens.items[1].type == TokenType.symbol);
+    try expect(tokens.items[2].type == TokenType.symbol);
+    try expect(tokens.items[3].type == TokenType.symbol);
+    try expect(tokens.items[4].type == TokenType.close_sexpr);
+}
