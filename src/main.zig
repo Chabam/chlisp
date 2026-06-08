@@ -53,5 +53,11 @@ pub fn main(init: std.process.Init) !void {
 
     try env.print(stdout_writer);
 
+    if (env.getValue(@constCast("pairs"))) |val| {
+        try val.print(stdout_writer);
+    } else {
+        try stdout_writer.print("{s} is not found", .{"pairs"});
+    }
+
     try stdout_writer.flush();
 }

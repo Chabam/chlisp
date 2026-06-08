@@ -22,6 +22,19 @@ pub const Environment = struct {
         try self.values.put(name, val);
     }
 
+    pub fn getValue(self: *Environment, name: []u8) ?value.Value{
+        if (self.values.get(name)) |val| {
+            return val;
+        }
+
+        if (self.parent) |parent| {
+            return parent.getValue(name);
+        }
+
+        return null;
+    }
+
+
     pub fn print(self: *Environment, writer: *std.Io.Writer) !void {
         var it = self.values.iterator();
         while (it.next()) |entry| {
@@ -30,4 +43,13 @@ pub const Environment = struct {
             try writer.print("\n", .{});
         }
     }
+
+    pub fn extend(self: *Environment, allocator: std.mem.Allocator) Environment {
+        const new_env: Environment = .init(allocator);
+
+        new_env.parent = self;
+
+        return new_env;
+    }
+
 };
